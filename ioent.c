@@ -1,6 +1,5 @@
 /*   
- *   Xordiff: Create a diff between two versions of the same file and store it
- *   as a sparse file
+ *   ioent: manage different file types (files/streams/gz/bz2)
  *
  *   Copyright 2012 Renzo Davoli
  *   
