@@ -1,0 +1,75 @@
+.\" Copyright (c) 2012 Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" version 2, as published by the Free Software Foundation.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+
+.TH SPARSIFY 1 "February 8, 2012" "Virtual Square Utilities"
+.SH NAME
+sparsify \- convert a file into a sparse file by deallocating unused areas.
+.SH "SYNOPSIS"
+.\".HP \w'\fBsparsify\fR\ 'u
+.nf
+\fBsparsify\fR [\fI-v\fR] [\fI-s bufsize\fR] [\fI-c\fR] [\fI-fff\fR] file 
+.sp
+\fBsparsify\fR [\fI-v\fR] [\fI-s bufsize\fR] [\fI-d\fR] filein fileout
+.SH "DESCRIPTION"
+.PP
+The
+\fBsparsify\fR
+command convert files into sparse files.
+When one file is specified the command convert a file to a sparse file.
+It is possible to copy a file into a sparse file by using two filenames,
+the first is the source file, the second is the target file.
+.br
+The command supports three different methods to convert a file to a sparse file.
+When neither \fI-c\fR nor \fI-fff\fR appear in the the command line, 
+\fBsparsify\fR uses the FALLOC_FL_PUNCH_HOLE option of the \fBfallocate(2)\fR
+system call to deallocate unused areas of the file.
+Unfortunately this feature is supported only on recent kernels for some
+file system types. For examples on linux3.2 it is supported for xfs and ext4.
+.br
+\fI-c\fR copies the file in a temporary file and then renames the new file
+to its original name. It requires free space on the partition to hold
+the copy of the file.
+.br
+\fI-fff\fR (it means --force --force --force) \fBthis is a very dangerous option.i\fR
+It is able to sparsify the file on file systems which does not support 
+FALLOC_FL_PUNCH_HOLE using just one blocksize of disk space (usually 4KB).
+The conversion progressively destroys the original file while converting it
+to sparse file. \fBIf this process gets interrupted it is almost sure that
+the data is irremediably corrupted\fR.
+.br
+When there are two filenames in the commandline the command create a copy
+of the first file in a sparse one.
+In this mode the source file can be a .gz (\fBgzip(1)\fR) or .bz2 (\fBbzip2(1)\fR) compressed file. \fBsparsify\fR decides the un-compressing algorithm
+to use by reading the suffix.
+.br
+The option \fI-d\fR imply the deletion of the source file after the copy.
+.br
+The option \fI-v\fR shows the status of the conversion process (one dot
+per 32MB and one line per GB).
+.br
+The default choice for the blocksize is the io-blocksize of the file system
+where the destination file must be stored. It is possible to override
+this default value by the option \fI-b\fR.
+.SH SEE ALSO
+fallocate(2), gzip(1), bzip2(1), xordiff(1)
+.SH AUTHORS
+Howto's and further information can be found on the VirtualSquare Labs Wiki
+<wiki.virtualsquare.org>.

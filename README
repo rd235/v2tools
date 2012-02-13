@@ -1,0 +1,9 @@
+This project includes some general purpose tools developed in
+Virtual Square.
+
+xordiff: generate xor diff files (sparse files). It is very useful to update
+large files on remote hosts like disk images for virtual machines.
+
+sparsify: deallocate unused areas of files.
+
+Copyright 2012 Renzo Davoli, Virtual Square Labs

@@ -1,0 +1,150 @@
+.\" Copyright (c) 2012 Renzo Davoli
+.\"
+.\" This is free documentation; you can redistribute it and/or
+.\" modify it under the terms of the GNU General Public License,
+.\" version 2, as published by the Free Software Foundation.
+.\"
+.\" The GNU General Public License's references to "object code"
+.\" and "executables" are to be interpreted as the output of any
+.\" document formatting or typesetting system, including
+.\" intermediate and printed output.
+.\"
+.\" This manual is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\"
+.\" You should have received a copy of the GNU General Public
+.\" License along with this manual; if not, write to the Free
+.\" Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
+.\" MA 02110-1301 USA.
+
+.TH XORDIFF 1 "February 8, 2012" "Virtual Square Utilities"
+.SH NAME
+xordiff \- positional diff based on the exclusive or operation
+.SH "SYNOPSIS"
+.HP \w'\fBixordiff\fR\ 'u
+\fBxordiff\fR [\fI-v\fR] [\fI-s\fR bufsize] [\fI-1234\fR] filea fileb file.a:b [file.ab:ba]
+
+.SH "DESCRIPTION"
+.PP
+Each bit of the resulting file of
+\fBxordiff\fR
+command (file.a:b) contains the exclusive or (xor) of the corresponding
+bits of filea and fileb. Given the following property of xor:
+.nf
+if (a xor b) is c then (a xor c) is b
+.fi
+the output file can be used as a diff file between the two input files.
+\fBxordiff\fR itself can be used as the command to patch one of
+the original files to get the other.
+In fact for example after these two commands:
+.in +4n
+.nf
+xordiff file1 file2 file1:2
+xordiff file1 file1:2 newfile2
+.fi
+.in
+file2 and newfile2 will have the same contents. \fBxordiff\fR has been designed
+to guarantee the property above for any pair of files, including those having
+different sizes.
+The diff file has always the size of the second file. When the first file
+is shorter the missing part of the file is considered zero, when the first
+file is longer the part exceeding the size of the second file is ignored.
+.br
+Following the example above: 
+.in +4n
+.nf
+xordiff file2 file1:2 file1onlyifsamesize
+.fi
+.in
+file1onlyifsamesize will have the same contents of file1 only if file1 and
+file2 have the same size.
+.br
+.sp
+\fBxordiff\fR always generates sparse files when possible, so it is very
+efficient (in terms of space) when the two files are very similar. This
+is for example the case of different snapshots of a disk images used by 
+virtual machines. Most of the data has not changed and its relative position
+is unchanged.
+.br
+.sp
+\fI-v\fR or \fI--verbose\fR provides a visible feedback of the 
+process by typing one dot each 32MB processed and a line per GB.
+.br
+.sp
+\fBxordiff\fR can compress/decompress data using \fBgzip(1)\fR or
+\fBbzip2(1)\fR formats. To use this feature just add the proper suffix
+to the filenames \fI.gz\fR or \fI.bz2\fR.
+.br
+.sp
+One input file and/or one output file can be associated to the standard input
+or to the standard output: use '-' as the filename. The following command 
+updates a remote file.
+.in +4n
+.nf
+xordiff file1 file2 - | ssh remhost xordiff remfile1 - remfile2
+.fi
+.in
+It is possible to compress the stream, the following command updates
+a remote copy of f1: f2 and remf2 will have the same contents:
+.in +4n
+.nf
+xordiff -- f1 f2 -.bz2 | ssh remhost xordiff -- remf1 -.bz2 remf2
+.fi
+.in
+the tag '--' is required to prevent getarg to parse -.bz2 as an argument.
+.br
+.sp
+Usually \fBxordiff\fR is used to provide patches to upgrade (perhaps remote)
+copies of large files subject to limited changes. As shown above \fBxordiff\fR
+cannot be used for downgrade files if they have different sizes.
+The forth optional file provide a (space optimized) general support for both 
+upgrade and downgrade.
+.br
+The command:
+.in +4n
+.nf
+xordiff file1 file2 file1:2 file12:21
+.fi
+.in
+is functionally equivalent to:
+.in +4n
+.nf
+xordiff file1 file2 file1:2
+xordiff file2 file1 file2:1
+xordiff file1:2 file2:1 file12:21
+rm file2:1
+.fi
+.in
+There is a significant saving in time in using one command instead of three,
+expecially when the files are large, as all the files get sequentially read or
+write just once. (The typical bottleneck of this command is the disk bandwidth
+not the processor).
+
+Like in the previous example file1:2 can be used to compute file2 given file1.
+.in +4n
+.nf
+xordiff file1 file1:2 newfile2
+.fi
+.in
+Now it is also possible to get file1 from file2 (downgrade) in the following
+way:
+.in +4n
+.nf
+xordiff file1:2 file12:21 - | xordiff file2 - file1
+.fi
+.in
+
+If the size file2 is not smaller than the size of file1, file12:21 is an empty
+file of the same size of file1. It uses no blocks on the file system 
+being a sparse file, and can be compressed to a few bytes.
+When file2 is smaller than file1, it has already the same size of file1,
+it is empty in a first section large as the size of file2, then it contains
+the final part of file1 (missing in file2). The same data is never stored twice
+in  file1:2 and in  file12:21.
+.SH SEE ALSO
+sparsify(1), gzip(1), bzip2(1)
+.SH AUTHORS
+Howto's and further information can be found on the VirtualSquare Labs Wiki
+<wiki.virtualsquare.org>.
