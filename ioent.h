@@ -1,5 +1,5 @@
 /*   
- *   ioent: manage different file types (files/streams/gz/bz2)
+ *   ioent: manage different file types (file/stream/gz/bz2)
  *
  *   Copyright 2012 Renzo Davoli
  *   
