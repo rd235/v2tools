@@ -21,9 +21,9 @@
 #define _GNU_SOURCE 
 #define _FILE_OFFSET_BITS 64
 #define O_LARGEFILE
+#include <config.h>
 #include <stdio.h>
 #include <fcntl.h>
-#include <linux/falloc.h>
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
@@ -36,6 +36,14 @@
 #include <zlib.h>
 #include <ioent.h>
 
+#if HAVE_FALLOCATE == 1
+#include <linux/falloc.h>
+#else
+#define FALLOC_FL_KEEP_SIZE 0x01
+#define fallocate(A,B,C,D) (ENOENT)
+#warning OLD kernel headers, fallocate disabled
+#endif
+
 #define STDBLOCKSIZE 4096
 #define SPARSIFY_VERBOSE 0x1
 #define SPARSIFY_DELETE 0x2
@@ -47,10 +55,6 @@
 #define SPARSIFY_HASH2 0x200
 #ifndef FALLOC_FL_PUNCH_HOLE
 #define FALLOC_FL_PUNCH_HOLE 0x02
-#endif
-#ifndef FALLOC_FL_KEEP_SIZE
-#define FALLOC_FL_KEEP_SIZE 0x01
-#define fallocate(A,B,C,D) (ENOENT)
 #endif
 
 inline void verboseprint(off_t offset)

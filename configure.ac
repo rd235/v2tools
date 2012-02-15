@@ -27,6 +27,7 @@ AC_CHECK_MEMBERS([struct stat.st_blksize])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([ftruncate memset])
+AC_CHECK_FUNCS([fallocate])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
