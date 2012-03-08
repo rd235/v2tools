@@ -37,6 +37,8 @@
 
 #define STDBLOCKSIZE 4096
 #define XOR_VERBOSE 0x1
+#define DOTSIZE 16 * (1 << 20)
+#define XSIZE (1 << 30)
 
 unsigned inline long xordiff(unsigned long *b1, unsigned long *b2, unsigned long *b3,
 		int bufsize)
@@ -62,22 +64,34 @@ void xorfile(struct ioent *f1, struct ioent *f2, struct ioent *fout,
 {
 	register off_t offset1;
 	register off_t offset2;
+	off_t nextdot=DOTSIZE;
+	off_t nextX=XSIZE;
 	register int bufsize=blocksize / sizeof(unsigned long);
 	register int verbose=flags & XOR_VERBOSE;
-	unsigned long buf1[bufsize];
-	unsigned long buf2[bufsize];
-	unsigned long buf3[bufsize];
-	unsigned long buf4[bufsize];
+	unsigned long *buf1,*buf2,*buf3,*buf4;
 	int n1,n2;
-
-	memset(buf4, 0, sizeof(long) * bufsize);
+	buf1 = malloc(blocksize);
+	buf2 = malloc(blocksize);
+	buf3 = malloc(blocksize);
+	if (buf1 == NULL || buf2 == NULL || buf3 == NULL) {
+		fprintf(stderr,"memory error");
+		exit(1);
+	}
+	if (fbiout) {
+		buf4 = malloc(blocksize);
+		if (buf4 == NULL) {
+			fprintf(stderr,"memory error");
+			exit(1);
+		}
+		memset(buf4, 0, sizeof(long) * bufsize);
+	}
 	for (offset1=offset2=0, n2=blocksize; n2 >= blocksize; offset1 += n1, offset2 += n2) {
 		n1=f1->ft->ft_read(f1,buf1,blocksize);
 		n2=f2->ft->ft_read(f2,buf2,blocksize);
-		if (__builtin_expect(n1+n2 < 2*blocksize, 0)) {
+		if (__builtin_expect(n1 < blocksize, 0)) 
 			memset(((char *)buf1)+n1, 0, blocksize-n1);
+		if (__builtin_expect(n2 < blocksize, 0))
 			memset(((char *)buf2)+n2, 0, blocksize-n2);
-		}
 		//printf("off %lld %d %d %d\n",offset2,n1,n2,verbose);
 		if (fbiout) {
 			if (__builtin_expect(n1 > n2, 0)) {
@@ -88,10 +102,12 @@ void xorfile(struct ioent *f1, struct ioent *f2, struct ioent *fout,
 		} 
 		fout->ft->ft_write(fout,xordiff(buf1,buf2,buf3,bufsize),buf3,n2,offset2);
 		if (verbose) {
-			if ((offset2 & 0xffffff)== 0) {
-				if ((offset2 & 0x3fffffff)== 0x3f000000)
+			while (offset2 >= nextdot) {
+				nextdot+=DOTSIZE;
+				if (offset2 >= nextX) {
+					nextX += XSIZE;
 					fprintf(stderr, "X\n");
-				else
+				} else
 					fprintf(stderr, ".");
 			}
 		}
@@ -106,10 +122,12 @@ void xorfile(struct ioent *f1, struct ioent *f2, struct ioent *fout,
 				fbiout->ft->ft_write(fbiout,isnotzero(buf1,bufsize),buf1,n1,offset1);
 				offset1 += n1;
 				if (verbose) {
-					if ((offset1 & 0xffffff)== 0) {
-						if ((offset1 & 0x3fffffff)== 0x3f000000)
+					while (offset2 >= nextdot) {
+						nextdot+=DOTSIZE;
+						if (offset2 >= nextX) {
+							nextX += XSIZE;
 							fprintf(stderr, "X\n");
-						else
+						} else
 							fprintf(stderr, ".");
 					}
 				}

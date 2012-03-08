@@ -57,12 +57,20 @@
 #define FALLOC_FL_PUNCH_HOLE 0x02
 #endif
 
+#define DOTSIZE 16 * (1 << 20)
+#define XSIZE (1 << 30)
+
+static off_t nextdot = DOTSIZE;
+static off_t nextX = XSIZE;
+
 inline void verboseprint(off_t offset)
 {
-	if ((offset & 0xffffff)== 0) {
-		if ((offset & 0x3fffffff)== 0x3f000000)
+	while (offset >= nextdot) {
+		nextdot+=DOTSIZE;
+		if (offset >= nextX) {
+			nextX += XSIZE;
 			fprintf(stderr, "X\n");
-		else
+		} else
 			fprintf(stderr, ".");
 	}
 }
@@ -76,7 +84,7 @@ inline unsigned long iszero(unsigned long *b, int bufsize)
 	return 1;
 }
 
-void dangerous_sparsify(int fd, int fdout, int filesize, int blocksize, int verbose)
+void dangerous_sparsify(int fd, int fdout, off_t filesize, int blocksize, int verbose)
 {
 	register off_t offset;
 	register int bufsize=blocksize / sizeof(unsigned long);
@@ -93,7 +101,7 @@ void dangerous_sparsify(int fd, int fdout, int filesize, int blocksize, int verb
 			pwrite(fdout,buf,n,offset);
 		}
 		ftruncate(fd,offset);
-		if (verbose) verboseprint(offset);
+		if (verbose) verboseprint(filesize - offset);
 	}
 	if (verbose) fprintf(stderr, "\n");
 	close(fd);
